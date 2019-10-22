@@ -22,7 +22,7 @@
     <scala.version>2.11.8</scala.version>
     <hbase.version>1.2.6</hbase.version>
     <hadoop.version>3.0.3</hadoop.version>
-    <spark.version>2.3.1</spark.version>
+    <spark.version>2.4.4</spark.version>
   </properties>
 
   <build>
