@@ -1,9 +1,12 @@
 package io.markov;
 
+import java.io.IOException;
+import java.util.Iterator;
+import java.util.List;
+
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
@@ -11,28 +14,23 @@ import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
-import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.MapFileOutputFormat;
+import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 import org.apache.log4j.Logger;
-import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 import org.kohsuke.args4j.Option;
 import org.kohsuke.args4j.ParserProperties;
+
+import tl.lin.data.map.HMapStIW;
 import tl.lin.data.pair.PairOfStrings;
-import tl.lin.data.array.ArrayListWritable;
-
-import java.io.IOException;
-import java.util.Iterator;
-import java.util.List;
-
 
 public class Dictogram extends Configured implements Tool {
   private static final Logger LOG = Logger.getLogger(Dictogram.class);
 
-  private static final class MyMapper extends Mapper<LongWritable, Text, Text, Text> {
-    private static final Text BIGRAM = new Text();
+  private static final class MyMapper extends Mapper<LongWritable, Text, PairOfStrings, Text> {
+    private static final PairOfStrings BIGRAM = new PairOfStrings();
     private static final Text VAL = new Text();
 
     @Override
@@ -40,33 +38,39 @@ public class Dictogram extends Configured implements Tool {
       List<String> tokens = Tokenizer.tokenize(value.toString());
 
       if (tokens.size() < 3) return;
-      BIGRAM.set("*START*" + " " + "*START*");
+      BIGRAM.set("*START*", "*START*");
       VAL.set(tokens.get(0) + " " + tokens.get(1));
       context.write(BIGRAM, VAL);
 
-      for (int i = 1; i < tokens.size(); i++) {
-        BIGRAM.set(tokens.get(i - 2) + " " + tokens.get(i - 1));
+      for (int i = 2; i < tokens.size(); i++) {
+        BIGRAM.set(tokens.get(i - 2), tokens.get(i - 1));
         VAL.set(tokens.get(i));
         context.write(BIGRAM, VAL);
       }
 
-      BIGRAM.set("*END*" + " " + "*END*");
+      BIGRAM.set("*END*", "*END*");
       VAL.set(tokens.get(tokens.size() - 2) + " " + tokens.get(tokens.size() - 1));
       context.write(BIGRAM, VAL);
     }
   }
 
-    private static final class MyReducer extends Reducer<Text, Text, Text, ArrayListWritable<Text>> {
+    private static final class MyReducer extends Reducer<PairOfStrings, Text, PairOfStrings, HMapStIW> {
     
     @Override
-    public void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {  
-      ArrayListWritable<Text> VALUES = new ArrayListWritable();
+    public void reduce(PairOfStrings key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
+      HMapStIW map = new HMapStIW();
       Iterator<Text> iter = values.iterator();
 
       while (iter.hasNext()) {
-        VALUES.add(iter.next());
+        String k = iter.next().toString();
+        if (map.containsKey(k)) {
+          map.put(k, map.get(k) + 1);
+        } else {
+          map.put(k, 1);
+        }
       }
-      context.write(key, VALUES);
+
+      context.write(key, map);
     }
   }
 
@@ -109,10 +113,10 @@ public class Dictogram extends Configured implements Tool {
     FileInputFormat.setInputPaths(job, new Path(args.input));
     FileOutputFormat.setOutputPath(job, new Path(args.output));
 
-    job.setMapOutputKeyClass(Text.class);
+    job.setMapOutputKeyClass(PairOfStrings.class);
     job.setMapOutputValueClass(Text.class);
-    job.setOutputKeyClass(Text.class);
-    job.setOutputValueClass(ArrayListWritable.class);
+    job.setOutputKeyClass(PairOfStrings.class);
+    job.setOutputValueClass(HMapStIW.class);
     if (args.text) {
       job.setOutputFormatClass(TextOutputFormat.class);
     } else {
@@ -120,7 +124,7 @@ public class Dictogram extends Configured implements Tool {
     }
 
     job.setMapperClass(MyMapper.class);
-    job.setCombinerClass(MyReducer.class);
+    // job.setCombinerClass(MyReducer.class);
     job.setReducerClass(MyReducer.class);
 
     // Delete the output directory if it exists already.
