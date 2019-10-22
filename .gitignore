@@ -1,0 +1,7 @@
+./config
+./.vscode
+./target
+./.settings
+./output
+./.classpath
+./.project
