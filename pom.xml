@@ -3,46 +3,18 @@
     xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 
   <modelVersion>4.0.0</modelVersion>
-  <groupId>io.bespin</groupId>
-  <artifactId>bespin</artifactId>
+  <groupId>io.markov</groupId>
+  <artifactId>markov</artifactId>
   <packaging>jar</packaging>
-  <name>Bespin</name>
-  <version>1.0.5-SNAPSHOT</version>
-  <description>Code for the big data course at the University of Waterloo.</description>
-  <url>http://bespin.io/</url>
-  <licenses>
-    <license>
-      <name>The Apache Software License, Version 2.0</name>
-      <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
-      <distribution>repo</distribution>
-    </license>
-  </licenses>
-  <scm>
-    <connection>scm:git:git@github.com:lintool/bespin.git</connection>
-    <developerConnection>scm:git:git@github.com:lintool/bespin.git</developerConnection>
-    <url>git@github.com:lintool/bespin.git</url>
-  </scm>
+  <name>Markov-Text</name>
+  <version>1.0.0-Alpha</version>
+  <description>Code for higher order markov model analysis</description>
   <developers>
     <developer>
-      <id>lintool</id>
-      <name>Jimmy Lin</name>
-      <email>jimmylin@uwaterloo.ca</email>
+      <name>Mohammed Istiaq Ullah</name>
+      <email>miullah@uwaterloo.ca</email>
     </developer>
   </developers>
-
-  <distributionManagement>
-    <snapshotRepository>
-      <id>ossrh</id>
-      <url>https://oss.sonatype.org/content/repositories/snapshots</url>
-    </snapshotRepository>
-  </distributionManagement>
-
-  <repositories>
-    <repository>
-      <id>maven</id>
-      <url>http://repo.maven.apache.org/maven2/</url>
-    </repository>
-  </repositories>
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -62,30 +34,6 @@
         <configuration>
           <source>1.8</source>
           <target>1.8</target>
-        </configuration>
-      </plugin>
-      <plugin>
-        <groupId>org.scala-tools</groupId>
-        <artifactId>maven-scala-plugin</artifactId>
-        <version>2.15.2</version>
-        <executions>
-          <execution>
-            <phase>process-resources</phase>
-            <goals>
-              <goal>add-source</goal>
-              <goal>compile</goal>
-            </goals>
-          </execution>
-          <execution>
-            <id>scala-test-compile</id>
-            <phase>process-test-resources</phase>
-            <goals>
-              <goal>testCompile</goal>
-            </goals>
-          </execution>
-        </executions>
-        <configuration>
-          <scalaVersion>${scala.version}</scalaVersion>
         </configuration>
       </plugin>
       <plugin>
@@ -230,34 +178,9 @@
       <version>23.6-jre</version>
     </dependency>
     <dependency>
-      <groupId>org.scala-lang</groupId>
-      <artifactId>scala-library</artifactId>
-      <version>${scala.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.scalatest</groupId>
-      <artifactId>scalatest_2.11</artifactId>
-      <version>3.0.4</version>
-    </dependency>
-    <dependency>
       <groupId>org.rogach</groupId>
       <artifactId>scallop_2.11</artifactId>
       <version>3.1.1</version>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.spark</groupId>
-      <artifactId>spark-core_2.11</artifactId>
-      <version>${spark.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.spark</groupId>
-      <artifactId>spark-sql_2.11</artifactId>
-      <version>${spark.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.spark</groupId>
-      <artifactId>spark-streaming_2.11</artifactId>
-      <version>${spark.version}</version>
     </dependency>
   </dependencies>
 

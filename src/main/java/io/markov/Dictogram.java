@@ -1,6 +1,4 @@
-import java.io.IOException;
-import java.util.Iterator;
-import java.util.StringTokenizer;
+package io.markov;
 
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FileSystem;
@@ -14,6 +12,7 @@ import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
+import org.apache.hadoop.mapreduce.lib.output.MapFileOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 import org.apache.log4j.Logger;
@@ -21,47 +20,60 @@ import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 import org.kohsuke.args4j.Option;
 import org.kohsuke.args4j.ParserProperties;
+import tl.lin.data.pair.PairOfStrings;
+import tl.lin.data.array.ArrayListWritable;
 
-public class BigramCount extends Configured implements Tool {
-  private static final Logger LOG = Logger.getLogger(BigramCount.class);
+import java.io.IOException;
+import java.util.Iterator;
+import java.util.List;
 
-  private static final class MyMapper extends Mapper<LongWritable, Text, Text, IntWritable> {
-    private static final IntWritable ONE = new IntWritable(1);
+
+public class Dictogram extends Configured implements Tool {
+  private static final Logger LOG = Logger.getLogger(Dictogram.class);
+
+  private static final class MyMapper extends Mapper<LongWritable, Text, Text, Text> {
     private static final Text BIGRAM = new Text();
+    private static final Text VAL = new Text();
 
     @Override
-    public void map(LongWritable key, Text value, Context context)
-        throws IOException, InterruptedException {
-      StringTokenizer tokenizer = StringTokenizer(value.toString());
-      int tokenCount = tokenizer.countTokens();
+    public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
+      List<String> tokens = Tokenizer.tokenize(value.toString());
 
-      for (int i = 1; i < tokenCount; i++) {
-        BIGRAM.set(tokens.get(i - 1) + " " + tokens.get(i));
-        context.write(BIGRAM, ONE);
+      if (tokens.size() < 3) return;
+      BIGRAM.set("*START*" + " " + "*START*");
+      VAL.set(tokens.get(0) + " " + tokens.get(1));
+      context.write(BIGRAM, VAL);
+
+      for (int i = 1; i < tokens.size(); i++) {
+        BIGRAM.set(tokens.get(i - 2) + " " + tokens.get(i - 1));
+        VAL.set(tokens.get(i));
+        context.write(BIGRAM, VAL);
       }
+
+      BIGRAM.set("*END*" + " " + "*END*");
+      VAL.set(tokens.get(tokens.size() - 2) + " " + tokens.get(tokens.size() - 1));
+      context.write(BIGRAM, VAL);
     }
   }
 
-  private static final class MyReducer extends Reducer<Text, IntWritable, Text, IntWritable> {
-    private static final IntWritable SUM = new IntWritable();
-
+    private static final class MyReducer extends Reducer<Text, Text, Text, ArrayListWritable<Text>> {
+    
     @Override
-    public void reduce(Text key, Iterable<IntWritable> values, Context context)
-        throws IOException, InterruptedException {
-      int sum = 0;
-      Iterator<IntWritable> iter = values.iterator();
+    public void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {  
+      ArrayListWritable<Text> VALUES = new ArrayListWritable();
+      Iterator<Text> iter = values.iterator();
+
       while (iter.hasNext()) {
-        sum += iter.next().get();
+        VALUES.add(iter.next());
       }
-      SUM.set(sum);
-      context.write(key, SUM);
+      context.write(key, VALUES);
     }
   }
 
   /**
    * Creates an instance of this tool.
    */
-  private BigramCount() {}
+  private Dictogram() {}
 
   private static final class Args {
     @Option(name = "-input", metaVar = "[path]", required = true, usage = "input path")
@@ -72,32 +84,25 @@ public class BigramCount extends Configured implements Tool {
 
     @Option(name = "-reducers", metaVar = "[num]", usage = "number of reducers")
     int numReducers = 1;
+
+    @Option(name = "-text")
+    boolean text = false;
   }
 
-  /**
-   * Runs this tool.
-   */
   @Override
   public int run(String[] argv) throws Exception {
     final Args args = new Args();
     CmdLineParser parser = new CmdLineParser(args, ParserProperties.defaults().withUsageWidth(100));
+    parser.parseArgument(argv);
 
-    try {
-      parser.parseArgument(argv);
-    } catch (CmdLineException e) {
-      System.err.println(e.getMessage());
-      parser.printUsage(System.err);
-      return -1;
-    }
-
-    LOG.info("Tool name: " + BigramCount.class.getSimpleName());
+    LOG.info("Tool name: " + Dictogram.class.getSimpleName());
     LOG.info(" - input path: " + args.input);
     LOG.info(" - output path: " + args.output);
     LOG.info(" - num reducers: " + args.numReducers);
 
     Job job = Job.getInstance(getConf());
-    job.setJobName(BigramCount.class.getSimpleName());
-    job.setJarByClass(BigramCount.class);
+    job.setJobName(Dictogram.class.getSimpleName());
+    job.setJarByClass(Dictogram.class);
 
     job.setNumReduceTasks(args.numReducers);
 
@@ -105,10 +110,14 @@ public class BigramCount extends Configured implements Tool {
     FileOutputFormat.setOutputPath(job, new Path(args.output));
 
     job.setMapOutputKeyClass(Text.class);
-    job.setMapOutputValueClass(IntWritable.class);
+    job.setMapOutputValueClass(Text.class);
     job.setOutputKeyClass(Text.class);
-    job.setOutputValueClass(IntWritable.class);
-    job.setOutputFormatClass(TextOutputFormat.class);
+    job.setOutputValueClass(ArrayListWritable.class);
+    if (args.text) {
+      job.setOutputFormatClass(TextOutputFormat.class);
+    } else {
+      job.setOutputFormatClass(MapFileOutputFormat.class);
+    }
 
     job.setMapperClass(MyMapper.class);
     job.setCombinerClass(MyReducer.class);
@@ -125,13 +134,7 @@ public class BigramCount extends Configured implements Tool {
     return 0;
   }
 
-  /**
-   * Dispatches command-line arguments to the tool via the {@code ToolRunner}.
-   *
-   * @param args command-line arguments
-   * @throws Exception if tool encounters an exception
-   */
   public static void main(String[] args) throws Exception {
-    ToolRunner.run(new BigramCount(), args);
+    ToolRunner.run(new Dictogram(), args);
   }
 }
