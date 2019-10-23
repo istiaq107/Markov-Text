@@ -24,6 +24,7 @@ import org.kohsuke.args4j.Option;
 import org.kohsuke.args4j.ParserProperties;
 
 import tl.lin.data.map.HMapStIW;
+import tl.lin.data.array.ArrayListWritable;
 import tl.lin.data.pair.PairOfStrings;
 
 public class Dictogram extends Configured implements Tool {
