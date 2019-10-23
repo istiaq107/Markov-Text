@@ -46,30 +46,32 @@ public class Writer extends Configured implements Tool {
     String line = new String();
     String[] nextText;
     
-    for (MapFile.Reader ind: indices) {
-      if (words == 0) break;
-      if (ind.get(bigram, set) != null) {
-        
-        Object[] keySet = set.keySet().toArray();
-        Random r = new Random();
-        int random = r.nextInt(keySet.length);
-        nextText = ((String) keySet[random]).split(" ");
-        String next = nextText[0];
-        
-        if (nextText.length > 1) {
-          line = line.concat(next);
-          next = nextText[1];
-          bigram.set(nextText[0], next);
-        } else {
-          bigram.set(bigram.getsRightElement(), next);
-        }
+      while (words > 0) {
+        for (MapFile.Reader ind: indices) {
+          if (ind.get(bigram, set) != null) {
+          
+            Object[] keySet = set.keySet().toArray();
+            Random r = new Random();
+            int random = r.nextInt(keySet.length);
+            nextText = ((String) keySet[random]).split(" ");
+            String next = nextText[0];
+            
+            if (nextText.length > 1) {
+              line = line.concat(next);
+              next = nextText[1];
+              bigram.set(nextText[0], next);
+            } else {
+              bigram.set(bigram.getRightElement(), next);
+            }
 
-        line = line.concat(" ");              
-        line = line.concat(next);
-        System.out.println(line);
+            line = line.concat(" ");              
+            line = line.concat(next);
+            // System.out.println(line);
+            break;
+          }
+        }
         --words;
       }
-    }
     return line;
 
   }
