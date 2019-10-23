@@ -80,13 +80,13 @@ public class Writer extends Configured implements Tool {
     
     PairOfStrings bigram = new PairOfStrings("*START*", "*START*");
     int lines = 3;
-    String line = new String();
 
     while (lines > 0) {
+      String line = new String();
       line = line.concat(write(bigram, 8));
+      System.out.println(line);
       --lines;
     }
-    System.out.println(line);
   }
 
 
