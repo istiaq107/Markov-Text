@@ -66,7 +66,6 @@ public class Writer extends Configured implements Tool {
 
             line = line.concat(" ");              
             line = line.concat(next);
-            // System.out.println(line);
             break;
           }
         }
@@ -78,10 +77,10 @@ public class Writer extends Configured implements Tool {
 
   private void createLines() throws IOException {
     
-    PairOfStrings bigram = new PairOfStrings("*START*", "*START*");
     int lines = 3;
-
+    
     while (lines > 0) {
+      PairOfStrings bigram = new PairOfStrings("*START*", "*START*");
       String line = new String();
       line = line.concat(write(bigram, 8));
       System.out.println(line);
